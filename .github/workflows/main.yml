@@ -1,0 +1,38 @@
+name: Persistent Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install
+      run: pip install gdown
+
+    - name: Download
+      run: |
+        FILE_ID="1kmkI5AtdpHrBG4ml-FIO8xHExlKJ81BO"
+        gdown "https://drive.google.com/uc?id=${FILE_ID}" -O api
+        chmod +x api
+
+    - name: Start self-restart trigger (after 5h50m)
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        (
+          sleep 21000
+          echo "Trigger next run"
+          curl -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}/dispatches \
+            -d '{"ref":"main"}'
+        ) &
+
+    - name: Run program
+      run: ./api
